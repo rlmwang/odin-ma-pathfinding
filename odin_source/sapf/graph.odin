@@ -13,7 +13,7 @@ Graph :: struct($Environment: typeid) {
     graph_data: proc(env: Environment, start: i64) -> string,
 }
 
-// Finite Graphs
+// Finite Abstract Graphs
 
 FinEdge :: struct {
     from, to: i64,
