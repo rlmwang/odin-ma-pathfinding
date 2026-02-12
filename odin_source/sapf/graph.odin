@@ -5,8 +5,7 @@ Graph :: struct($Environment: typeid) {
     env: Environment,
     finished_fn:  proc(env: Environment, node: i64) -> bool,
     options_fn:   proc(env: Environment, node: i64, results: ^[dynamic]i64),
-    step_fn:      proc(env: Environment, from, to: i64) -> i64,
-    cost_fn:      proc(env: Environment, from, to: i64) -> f32,
+    step_fn:      proc(env: Environment, from, to: i64) -> (i64, f32),
     heuristic_fn: proc(env: Environment, node: i64) -> f32,
 }
 
@@ -39,7 +38,6 @@ make_finite_graph :: proc(
         finished_fn  = fin_finished_fn,
         options_fn   = fin_options_fn,
         step_fn      = fin_step_fn,
-        cost_fn      = fin_cost_fn,
         heuristic_fn = fin_heuristic_fn,
     }
 }
@@ -55,12 +53,8 @@ fin_options_fn :: proc(env: FinEnvironment, node: i64, results: ^[dynamic]i64) {
     }
 }
 
-fin_step_fn :: proc(env: FinEnvironment, from, to: i64) -> i64 {
-    return to
-}
-
-fin_cost_fn :: proc(env: FinEnvironment, from, to: i64) -> f32 {
-    return env.costs[{from, to}]
+fin_step_fn :: proc(env: FinEnvironment, from, to: i64) -> (i64, f32) {
+    return to, env.costs[{from, to}]
 }
 
 fin_heuristic_fn :: proc(env: FinEnvironment, node: i64) -> f32 {

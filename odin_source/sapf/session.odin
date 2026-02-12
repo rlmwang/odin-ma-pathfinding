@@ -31,8 +31,9 @@ _step :: proc(session: ^Session($Environment), action: i64) -> StepResult {
     if session.is_done {
         return {0, true, session.current_node}
     }
-    cost := session.graph.cost_fn(session.graph.env, session.current_node, action)
-    session.current_node = session.graph.step_fn(session.graph.env, session.current_node, action)
+
+    next_node, cost := session.graph.step_fn(session.graph.env, session.current_node, action)
+    session.current_node = next_node
 
     if session.graph.finished_fn(session.graph.env, session.current_node) {
         session.is_done = true
