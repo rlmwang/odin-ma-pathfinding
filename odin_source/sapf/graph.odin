@@ -1,40 +1,39 @@
 package sapf
 
 
-Graph :: struct($Environment: typeid, $Node: typeid) {
+Graph :: struct($Environment: typeid) {
     env: Environment,
-    finished_fn:  proc(env: Environment, node: Node) -> bool,
-    options_fn:   proc(env: Environment, node: Node, results: ^[dynamic]Node),
-    cost_fn:      proc(env: Environment, from, to: Node) -> f32,
-    heuristic_fn: proc(env: Environment, node: Node) -> f32,
+    finished_fn:  proc(env: Environment, node: i64) -> bool,
+    options_fn:   proc(env: Environment, node: i64, results: ^[dynamic]i64),
+    cost_fn:      proc(env: Environment, from, to: i64) -> f32,
+    heuristic_fn: proc(env: Environment, node: i64) -> f32,
 }
 
 
 // Finite Graphs
 
-FinNode :: i32
 FinEdge :: struct {
-    from, to: FinNode,
+    from, to: i64,
 }
 
 FinEnvironment :: struct {
-    neighbors:  map[FinNode][dynamic]FinNode,
+    neighbors:  map[i64][dynamic]i64,
     costs:      map[FinEdge]f32,
-    target:     FinNode,
+    target:     i64,
 }
 
 make_finite_graph :: proc(
-    neighbors: map[FinNode][dynamic]FinNode, 
+    neighbors: map[i64][dynamic]i64, 
     costs:     map[FinEdge]f32, 
-    target:    FinNode,
-) -> Graph(FinEnvironment, FinNode) {
+    target:    i64,
+) -> Graph(FinEnvironment) {
     env := FinEnvironment {
         neighbors = neighbors,
         costs     = costs,
         target    = target,
     }
 
-    return Graph(FinEnvironment, FinNode) {
+    return Graph(FinEnvironment) {
         env          = env,
         finished_fn  = fin_finished_fn,
         options_fn   = fin_options_fn,
@@ -43,21 +42,31 @@ make_finite_graph :: proc(
     }
 }
 
-fin_finished_fn :: proc(env: FinEnvironment, node: FinNode) -> bool {
+fin_finished_fn :: proc(env: FinEnvironment, node: i64) -> bool {
     return node == env.target    
 }
 
-fin_options_fn :: proc(env: FinEnvironment, node: FinNode, results: ^[dynamic]FinNode) {
+fin_options_fn :: proc(env: FinEnvironment, node: i64, results: ^[dynamic]i64) {
     clear(results)
     for next in env.neighbors[node] {
         append(results, next)
     }
 }
 
-fin_cost_fn :: proc(env: FinEnvironment, from, to: FinNode) -> f32 {
+fin_cost_fn :: proc(env: FinEnvironment, from, to: i64) -> f32 {
     return env.costs[{from, to}]
 }
 
-fin_heuristic_fn :: proc(env: FinEnvironment, node: FinNode) -> f32 {
+fin_heuristic_fn :: proc(env: FinEnvironment, node: i64) -> f32 {
     return 0
+}
+
+fin_reset_bridge :: proc(session: rawptr) -> StepResult {
+    typed_session := (^Session(FinEnvironment))(session)
+    return _reset(typed_session)
+}
+
+fin_step_bridge :: proc(session: rawptr, action: i64) -> StepResult {
+    typed_session := (^Session(FinEnvironment))(session)
+    return _step(typed_session, action)
 }
