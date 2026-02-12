@@ -28,7 +28,7 @@ test_mapf :: proc(
         steps_fn        = maze_steps,
         cost_fn         = maze_cost,
         heur_fn         = maze_heur,
-        time_fn    = maze_step_time,
+        time_fn         = maze_step_time,
         node_hash_full  = maze_hash_full,
         node_hash_base  = maze_hash_base,
     )

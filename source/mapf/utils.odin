@@ -1,11 +1,6 @@
 package mapf
 
 
-MultiStep :: struct($Node: typeid, $scale: int) {
-    nodes:  [scale]Node,
-    length: int,
-}
-
 invert_array :: proc(arr: []$T) {
     i, j := 0, len(arr) - 1
     for true {

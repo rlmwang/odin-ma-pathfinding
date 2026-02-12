@@ -13,8 +13,8 @@ A_Cons_Node :: struct($Node: typeid) {
     time:   int,
 }
 
-A_Cons_Step :: struct($Node: typeid, $scale: int) {
-    using multistep: MultiStep(A_Cons_Node(Node), scale),
+A_Cons_Step :: struct($Node: typeid) {
+    node:       A_Cons_Node(Node),
     interval:   int,
     time:       int,
     cost:       f32,
@@ -29,11 +29,10 @@ MapfWait :: struct {
 Constraint :: [2]int
 
 a_star_constrained :: proc(
-    $scale:             int,
     grid:               $Grid,
     start:              $Node,
     stall:              int,
-    steps_fn:           proc(grid: Grid, position: Node, time: int) -> []MultiStep(Node, scale),
+    steps_fn:           proc(grid: Grid, position: Node, time: int) -> []Node,
     time_fn:            proc(grid: Grid, from, to: Node, time, wait: int) -> int,
     cost_fn:            proc(grid: Grid, from, to: Node, time, wait: int) -> f32,
     heur_fn:            proc(grid: Grid, position: Node) -> f32,
@@ -43,7 +42,7 @@ a_star_constrained :: proc(
     node_constraints:   map[int][dynamic]Constraint,
     edge_constraints:   map[[2]int][dynamic]Constraint,
 ) -> ([]MapfStep(Node), f32, bool) {
-    Step :: A_Cons_Step(Node, scale)
+    Step :: A_Cons_Step(Node)
 
     step_less :: proc(a, b: Step) -> bool {
         return a.cost + a.heur < b.cost + b.heur
@@ -69,12 +68,10 @@ a_star_constrained :: proc(
             interval = find_first_constraint(n_cons[:], stall)
         }
 
-        start_nodes: [scale]A_Cons_Node(Node)
-        start_nodes[0] = {start, stall}
+        start_node: A_Cons_Node(Node) = {start, stall}
 
         pq.push(&queue, Step{
-            nodes       = start_nodes,
-            length      = 1,
+            node        = start_node,
             interval    = interval,
             time        = stall,
             cost        = 0,
@@ -85,7 +82,7 @@ a_star_constrained :: proc(
 
     for pq.len(queue) > 0 {
         cur_step := pq.pop(&queue)
-        cur_node := cur_step.nodes[cur_step.length-1].node
+        cur_node := cur_step.node.node
 
         if finish_fn(grid, cur_node) {
             path := re_construct_path(
@@ -104,20 +101,16 @@ a_star_constrained :: proc(
 
             // lowest arrival time
 
+            cur_node  = cur_step.node.node
             low_time := cur_step.time
-            cur_node  = cur_step.nodes[cur_step.length-1].node
-            for nxt_node in nxt_step.nodes[: nxt_step.length] {
-                defer cur_node = nxt_node
-                low_time += time_fn(grid, cur_node, nxt_node, low_time, 0)
-            }
+            low_time += time_fn(grid, cur_node, nxt_step, low_time, 0)
 
             // find gaps at last node
 
             waiting: [dynamic]MapfWait
             defer delete(waiting)
 
-            lst_node := nxt_step.nodes[nxt_step.length-1]
-            n_cons, n_ok := node_constraints[node_hash_base(lst_node)]
+            n_cons, n_ok := node_constraints[node_hash_base(nxt_step)]
 
             if !n_ok || len(n_cons) == 0 {
                 append(&waiting, MapfWait{0, 0})
@@ -134,47 +127,43 @@ a_star_constrained :: proc(
             // check for valid gaps
 
             wait_loop: for wait in waiting {
-                new_nodes: [scale]A_Cons_Node(Node)
+                new_node: A_Cons_Node(Node)
 
                 new_time := cur_step.time + wait.time
                 new_cost := cur_step.cost
 
                 cur_time := new_time
-                cur_node  = cur_step.nodes[cur_step.length-1].node
+                cur_node  = cur_step.node.node
+                nxt_node := nxt_step
 
-                for nxt_node, index in nxt_step.nodes[: nxt_step.length] {
-                    defer cur_node = nxt_node
-                    defer cur_time = new_time
-    
-                    new_cost += cost_fn(grid, cur_node, nxt_node, cur_time, wait.time * int(index == 0))
-                    new_time += time_fn(grid, cur_node, nxt_node, cur_time, wait.time * int(index == 0))
-                    new_nodes[index] = {nxt_node, new_time}
+                new_cost += cost_fn(grid, cur_node, nxt_node, cur_time, wait.time)
+                new_time += time_fn(grid, cur_node, nxt_node, cur_time, wait.time)
+                new_node = {nxt_node, new_time}
 
-                    // check if valid
+                // check if valid
 
-                    n0_cons, n0_ok := node_constraints[node_hash_base(cur_node)]
-                    n1_cons, n1_ok := node_constraints[node_hash_base(nxt_node)]
-                    ed_cons, ed_ok := edge_constraints[{node_hash_base(cur_node), node_hash_base(nxt_node)}]
+                n0_cons, n0_ok := node_constraints[node_hash_base(cur_node)]
+                n1_cons, n1_ok := node_constraints[node_hash_base(nxt_node)]
+                ed_cons, ed_ok := edge_constraints[{node_hash_base(cur_node), node_hash_base(nxt_node)}]
 
-                    if n0_ok {
-                        interval := find_first_constraint(n0_cons[:], new_time)
-                        if interval < len(n0_cons) && new_time > n0_cons[interval].x do continue wait_loop
-                    }
-                    if n1_ok {
-                        interval := find_first_constraint(n1_cons[:], new_time)
-                        if interval < len(n1_cons) && new_time >= n1_cons[interval].x do continue wait_loop
-                    }
-                    if ed_ok {
-                        for ed_con in ed_cons {
-                            if new_time <= ed_con.x || ed_con.y < cur_time do continue
-                            continue wait_loop
-                        }
+                if n0_ok {
+                    interval := find_first_constraint(n0_cons[:], new_time)
+                    if interval < len(n0_cons) && new_time > n0_cons[interval].x do continue wait_loop
+                }
+                if n1_ok {
+                    interval := find_first_constraint(n1_cons[:], new_time)
+                    if interval < len(n1_cons) && new_time >= n1_cons[interval].x do continue wait_loop
+                }
+                if ed_ok {
+                    for ed_con in ed_cons {
+                        if new_time <= ed_con.x || ed_con.y < cur_time do continue
+                        continue wait_loop
                     }
                 }
 
                 // assign step if cheaper
 
-                fin_node := nxt_step.nodes[nxt_step.length-1]
+                fin_node := nxt_step
                 new_hash := [2]int{node_hash_full(fin_node), wait.interval}
                 new_heur := heur_fn(grid, fin_node)
 
@@ -185,8 +174,7 @@ a_star_constrained :: proc(
                     cost[new_hash] = new_cost
     
                     pq.push(&queue, Step{
-                        nodes    = new_nodes,
-                        length   = nxt_step.length,
+                        node     = new_node,
                         interval = wait.interval,
                         time     = new_time,
                         cost     = new_cost,
@@ -215,32 +203,28 @@ find_first_constraint :: proc(
 @(private="file")
 re_construct_path :: proc(
     start:      $Node,
-    end:        ^A_Cons_Step(Node, $scale),
-    seen:       map[[2]int]A_Cons_Step(Node, scale),
+    end:        ^A_Cons_Step(Node),
+    seen:       map[[2]int]A_Cons_Step(Node),
     node_hash:  proc(node: Node) -> int,
 ) -> []MapfStep(Node) {
     path: [dynamic]MapfStep(Node)
 
     time := end.time
-    #reverse for node in end.nodes[:end.length] {
-        append(&path, MapfStep(Node){
-            position = node.node,
-            interval = {time, time + scale},
-        })
-    }
+    append(&path, MapfStep(Node){
+        position = end.node.node,
+        interval = {time, time + 1},
+    })
 
     step := end
-    for step.nodes[step.length-1].node != start {
-        hash := [2]int{node_hash(step.nodes[step.length-1].node), step.interval}
+    for step.node.node != start {
+        hash := [2]int{node_hash(step.node.node), step.interval}
         step = &seen[hash]
 
-        #reverse for node in step.nodes[:step.length] {
-            append(&path, MapfStep(Node){
-                position = node.node,
-                interval = {node.time, time},
-            })
-            time = node.time
-        }
+        append(&path, MapfStep(Node){
+            position = step.node.node,
+            interval = {step.time, time},
+        })
+        time = step.node.time
     }
     invert_array(path[:])
     return path[:]

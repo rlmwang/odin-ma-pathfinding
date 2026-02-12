@@ -3,24 +3,23 @@ package mapf
 import pq "core:container/priority_queue"
 
 
-A_Star_Step :: struct($Node: typeid, $scale: int) {
-    using multistep: MultiStep(Node, scale),
-    time:   int,
-    cost:   f32,
-    heur:   f32,
+A_Star_Step :: struct($Node: typeid) {
+    node: Node,
+    time: int,
+    cost: f32,
+    heur: f32,
 }
 
 a_star :: proc(
-    $scale:     int,
     grid:       $Grid,
     start:      $Node,
     stall:      int,
     finish_fn:  proc(grid: Grid, position: Node) -> bool,
-    steps_fn:   proc(grid: Grid, position: Node, time: int) -> []MultiStep(Node, scale),
+    steps_fn:   proc(grid: Grid, position: Node, time: int) -> []Node,
     cost_fn:    proc(grid: Grid, from, to: Node) -> f32,
     heur_fn:    proc(grid: Grid, position: Node) -> f32,
 ) -> ([]Node, f32, bool) {
-    Step :: A_Star_Step(Node, scale)
+    Step :: A_Star_Step(Node)
 
     step_less :: proc(a, b: Step) -> bool {
         return a.cost + a.heur < b.cost + b.heur
@@ -39,7 +38,7 @@ a_star :: proc(
     pq.init(&queue, less=step_less, swap=step_swap, capacity=64)
     defer pq.destroy(&queue)
 
-    start_nodes: [scale]Node
+    start_nodes: Node
     start_nodes[0] = start
 
     pq.push(&queue, Step{
@@ -100,8 +99,8 @@ a_star :: proc(
 @(private="file")
 reconstruct_path :: proc(
     start:  $Node,
-    end:    ^A_Star_Step(Node, $scale),
-    seen:   map[Node]A_Star_Step(Node, scale),
+    end:    ^A_Star_Step(Node),
+    seen:   map[Node]A_Star_Step(Node),
 ) -> []Node {
     path: [dynamic]Node
     #reverse for node in end.nodes[:end.length] {

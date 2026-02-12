@@ -38,7 +38,6 @@ test_sapf :: proc(
     defer maze_destroy(maze)
 
     path, _, path_ok := mapf.a_star_constrained(
-        scale            = 1,
         grid             = maze,
         start            = start,
         stall            = stall,

@@ -37,9 +37,8 @@ Precedence :: struct {
 }
 
 multi_agent_conflict_based_search :: proc(
-    $scale:         int,
     agents:         []Agent($Grid, $Node),
-    steps_fn:       proc(grid: Grid, position: Node, time: int) -> []MultiStep(Node, scale),
+    steps_fn:       proc(grid: Grid, position: Node, time: int) -> []Node,
     time_fn:        proc(grid: Grid, from, to: Node, time, wait: int) -> int,
     cost_fn:        proc(grid: Grid, from, to: Node, time, wait: int) -> f32,
     heur_fn:        proc(grid: Grid, position: Node) -> f32,
@@ -81,7 +80,6 @@ multi_agent_conflict_based_search :: proc(
 
     for ag in agents {
         path, cost, path_ok = a_star_constrained(
-            scale            = scale,
             grid             = ag.grid,
             start            = ag.start,
             stall            = ag.stall,
@@ -139,7 +137,6 @@ multi_agent_conflict_based_search :: proc(
     }
     fetch_constraints(tree[:], &node_constraints, &edge_constraints, new, conflict.agent_a)
     path, new.path_cost, path_ok = a_star_constrained(
-        scale            = scale,
         grid             = agent.grid,
         start            = agent.start,
         stall            = agent.stall,
@@ -179,7 +176,6 @@ multi_agent_conflict_based_search :: proc(
     }
     fetch_constraints(tree[:], &node_constraints, &edge_constraints, new, conflict.agent_b)
     path, new.path_cost, path_ok = a_star_constrained(
-        scale            = scale,
         grid             = agent.grid,
         start            = agent.start,
         stall            = agent.stall,
@@ -257,7 +253,6 @@ multi_agent_conflict_based_search :: proc(
         }
         fetch_constraints(tree[:], &node_constraints, &edge_constraints, new, conflict.agent_a)
         path, new.path_cost, path_ok = a_star_constrained(
-            scale            = scale,
             grid             = agent.grid,
             start            = agent.start,
             stall            = agent.stall,
@@ -296,7 +291,6 @@ multi_agent_conflict_based_search :: proc(
         }
         fetch_constraints(tree[:], &node_constraints, &edge_constraints, new, conflict.agent_b)
         path, new.path_cost, path_ok = a_star_constrained(
-            scale            = scale,
             grid             = agent.grid,
             start            = agent.start,
             stall            = agent.stall,

@@ -52,7 +52,7 @@ maze_finish :: proc(maze: Maze, position: MazeNode) -> bool {
 }
 
 @(require_results)
-maze_steps :: proc(maze: Maze, position: MazeNode) -> []MazeNode {
+maze_steps :: proc(maze: Maze, position: MazeNode, time: int) -> []MazeNode {
     steps: [dynamic]MazeNode
     for dir in ~maze.walls[position] {
         vec := DIR_TO_VEC[dir]
@@ -78,7 +78,7 @@ maze_hash_base :: proc(node: MazeNode) -> int {
     return int(node) + 3
 }
 
-maze_step_time :: proc(node: MazeNode) -> int {
+maze_step_time :: proc(maze: Maze, from, to: MazeNode, time, wait: int) -> int {
     return 1
 }
 
