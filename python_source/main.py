@@ -1,6 +1,3 @@
 from .bindings_sapf import lib
 
-print(lib.add(1))
-print(lib.add(1))
-print(lib.add(1))
-print(lib.add(1))
+lib.init(b"finite_graph")
