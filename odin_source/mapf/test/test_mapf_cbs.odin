@@ -24,11 +24,11 @@ test_mapf :: proc(
 
     return mapf.multi_agent_conflict_based_search(
         agents          = full_agents[:],
-        finish_fn       = maze_finish,
-        steps_fn        = maze_steps,
-        cost_fn         = maze_cost,
-        heur_fn         = maze_heur,
-        time_fn         = maze_step_time,
+        finish       = maze_finish,
+        steps        = maze_steps,
+        cost         = maze_cost,
+        heur         = maze_heur,
+        time         = maze_step_time,
         node_hash_full  = maze_hash_full,
         node_hash_base  = maze_hash_base,
     )

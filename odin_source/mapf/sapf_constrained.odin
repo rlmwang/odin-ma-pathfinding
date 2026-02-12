@@ -32,11 +32,11 @@ a_star_constrained :: proc(
     grid:               $Grid,
     start:              $Node,
     stall:              int,
-    steps_fn:           proc(grid: Grid, position: Node, time: int) -> []Node,
-    time_fn:            proc(grid: Grid, from, to: Node, time, wait: int) -> int,
-    cost_fn:            proc(grid: Grid, from, to: Node, time, wait: int) -> f32,
-    heur_fn:            proc(grid: Grid, position: Node) -> f32,
-    finish_fn:          proc(grid: Grid, position: Node) -> bool,
+    steps:           proc(grid: Grid, position: Node, time: int) -> []Node,
+    time:            proc(grid: Grid, from, to: Node, time, wait: int) -> int,
+    cost:            proc(grid: Grid, from, to: Node, time, wait: int) -> f32,
+    heur:            proc(grid: Grid, position: Node) -> f32,
+    finish:          proc(grid: Grid, position: Node) -> bool,
     node_hash_full:     proc(node: Node) -> int,
     node_hash_base:     proc(node: Node) -> int,
     node_constraints:   map[int][dynamic]Constraint,
@@ -75,7 +75,7 @@ a_star_constrained :: proc(
             interval    = interval,
             time        = stall,
             cost        = 0,
-            heur        = heur_fn(grid, start),
+            heur        = heur(grid, start),
         })
         cost[{node_hash_full(start), interval}] = 0
     }
@@ -84,7 +84,7 @@ a_star_constrained :: proc(
         cur_step := pq.pop(&queue)
         cur_node := cur_step.node.node
 
-        if finish_fn(grid, cur_node) {
+        if finish(grid, cur_node) {
             path := re_construct_path(
                 start           = start,
                 end             = &cur_step,
@@ -94,7 +94,7 @@ a_star_constrained :: proc(
             return path, cur_step.cost, true
         }
 
-        nxt_steps := steps_fn(grid, cur_node, cur_step.time)
+        nxt_steps := steps(grid, cur_node, cur_step.time)
         defer delete(nxt_steps)
 
         stp: for &nxt_step in nxt_steps {
@@ -103,7 +103,7 @@ a_star_constrained :: proc(
 
             cur_node  = cur_step.node.node
             low_time := cur_step.time
-            low_time += time_fn(grid, cur_node, nxt_step, low_time, 0)
+            low_time += time(grid, cur_node, nxt_step, low_time, 0)
 
             // find gaps at last node
 
@@ -136,8 +136,8 @@ a_star_constrained :: proc(
                 cur_node  = cur_step.node.node
                 nxt_node := nxt_step
 
-                new_cost += cost_fn(grid, cur_node, nxt_node, cur_time, wait.time)
-                new_time += time_fn(grid, cur_node, nxt_node, cur_time, wait.time)
+                new_cost += cost(grid, cur_node, nxt_node, cur_time, wait.time)
+                new_time += time(grid, cur_node, nxt_node, cur_time, wait.time)
                 new_node = {nxt_node, new_time}
 
                 // check if valid
@@ -165,7 +165,7 @@ a_star_constrained :: proc(
 
                 fin_node := nxt_step
                 new_hash := [2]int{node_hash_full(fin_node), wait.interval}
-                new_heur := heur_fn(grid, fin_node)
+                new_heur := heur(grid, fin_node)
 
                 old_cost, old_ok := cost[new_hash]
 

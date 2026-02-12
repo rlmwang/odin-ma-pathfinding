@@ -20,3 +20,6 @@ lib.reset.restype = StepResult
 lib.step.argtypes = [c_int64]
 lib.step.restype = StepResult
 
+lib.graph.argtypes = []
+lib.graph.restype = c_char_p
+

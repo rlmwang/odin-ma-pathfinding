@@ -2,7 +2,6 @@ package sapf
 
 Session :: struct($Environment: typeid) {
     graph:        Graph(Environment),
-    start_node:   i64,
     current_node: i64,
     total_reward: f32,
     is_done:      bool,
@@ -16,12 +15,11 @@ StepResult :: struct {
 
 _init :: proc(session: ^Session($Environment), graph: Graph(Environment), start: i64) {
     session.graph = graph
-    session.start_node = start
     _reset(session)
 }
 
 _reset :: proc(session: ^Session($Environment)) -> StepResult {
-    session.current_node = session.start_node
+    session.current_node = session.graph.start
     session.total_reward = 0
     session.is_done = false
     return {0, false, session.current_node}
@@ -32,10 +30,10 @@ _step :: proc(session: ^Session($Environment), action: i64) -> StepResult {
         return {0, true, session.current_node}
     }
 
-    next_node, cost := session.graph.step_fn(session.graph.env, session.current_node, action)
+    next_node, cost := session.graph.step(session.graph.env, session.current_node, action)
     session.current_node = next_node
 
-    if session.graph.finished_fn(session.graph.env, session.current_node) {
+    if session.graph.finished(session.graph.env, session.current_node) {
         session.is_done = true
         return {-cost, true, session.current_node}
     }

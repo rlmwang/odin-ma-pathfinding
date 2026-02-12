@@ -14,10 +14,10 @@ a_star :: proc(
     grid:       $Grid,
     start:      $Node,
     stall:      int,
-    finish_fn:  proc(grid: Grid, position: Node) -> bool,
-    steps_fn:   proc(grid: Grid, position: Node, time: int) -> []Node,
-    cost_fn:    proc(grid: Grid, from, to: Node) -> f32,
-    heur_fn:    proc(grid: Grid, position: Node) -> f32,
+    finish:  proc(grid: Grid, position: Node) -> bool,
+    steps:   proc(grid: Grid, position: Node, time: int) -> []Node,
+    cost:    proc(grid: Grid, from, to: Node) -> f32,
+    heur:    proc(grid: Grid, position: Node) -> f32,
 ) -> ([]Node, f32, bool) {
     Step :: A_Star_Step(Node)
 
@@ -46,7 +46,7 @@ a_star :: proc(
         length  = 1,
         time    = 0,
         cost    = 0,
-        heur    = heur_fn(grid, start),
+        heur    = heur(grid, start),
     })
     cost[start] = 0
 
@@ -54,7 +54,7 @@ a_star :: proc(
         cur_step := pq.pop(&queue)
         cur_node := cur_step.nodes[cur_step.length-1]
 
-        if finish_fn(grid, cur_node) {
+        if finish(grid, cur_node) {
             path := reconstruct_path(
                 start   = start,
                 end     = &cur_step,
@@ -63,7 +63,7 @@ a_star :: proc(
             return path, cur_step.cost, true
         }
 
-        nxt_steps := steps_fn(grid, cur_node, cur_step.time)
+        nxt_steps := steps(grid, cur_node, cur_step.time)
         defer delete(nxt_steps)
 
         for &nxt_step in nxt_steps {
@@ -73,11 +73,11 @@ a_star :: proc(
             for nxt_node in nxt_step.nodes[: nxt_step.length] {
                 defer cur_node = nxt_node
 
-                new_cost += cost_fn(grid, cur_node, nxt_node)
+                new_cost += cost(grid, cur_node, nxt_node)
             }
 
             lst_node := nxt_step.nodes[nxt_step.length-1]
-            new_heur := heur_fn(grid, lst_node)
+            new_heur := heur(grid, lst_node)
             old_cost, ok := cost[lst_node]
 
             if !ok || old_cost > new_cost {
